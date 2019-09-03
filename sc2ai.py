@@ -4,6 +4,7 @@ from sc2.player import Bot, Computer
 from sc2.constants import GATEWAY, NEXUS, PROBE, PYLON, ASSIMILATOR, CYBERNETICSCORE, STALKER, STARGATE, VOIDRAY
 import random
 import cv2
+import numpy as np
 	
 
 class SentdeBot(sc2.BotAI):
@@ -34,26 +35,11 @@ class SentdeBot(sc2.BotAI):
 
 	async def attack(self):
 
-		aggressive_units = {STALKER: [15,5], VOIDRAY:[8,3]}
+		aggressive_units = {VOIDRAY:[8,3]}
 
 		for UNIT in aggressive_units:
-			if self.units(UNIT).amount > aggressive_units[UNIT][0] and self.units(UNIT).amount > aggressive_units[UNIT][1]:
-				for s in self.units(UNIT).idle:
+			for s in self.units(UNIT).idle:
 					await self.do(s.attack(self.find_target(self.state)))
-
-			elif self.units(UNIT).amount > aggressive_units[UNIT][1]:
-					if len(self.known_enemy_units) > 0:
-						for s in self.units(UNIT).idle:
-							await self.do(s.attack(random.choice(self.known_enemy_units)))
-
-		if self.units(STALKER).amount > 3:
-			if len(self.known_enemy_units) > 0:
-				for s in self.units(STALKER).idle:
-					await self.do(s.attack(random.choice(self.known_enemy_units)))
-		elif self.units(STALKER).amount > 15:
-			for s in self.units(STALKER).idle:
-				await self.do(s.attack(self.find_target(self.state)))
-	
 
 	async def build_offensive_force(self):
 		for sg in self.units(STARGATE).ready.noqueue:
