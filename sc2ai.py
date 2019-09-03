@@ -9,6 +9,7 @@ import numpy as np
 
 class SentdeBot(sc2.BotAI):
 	async def on_step(self, iteration):
+		self.iteration = iteration
 		await self.distribute_workers()
 		await self.build_pylons()
 		await self.build_workers()
@@ -17,13 +18,41 @@ class SentdeBot(sc2.BotAI):
 		await self.offensive_force_buildings()
 		await self.build_offensive_force()
 		await self.attack()
-		self.iteration = iteration
+		await self.intel()
+		
 
 	def __init__(self):
 		self.ITERATIONS_PER_MINUTE = 165
 		self.MAX_WORKERS = 50
 		self.iteration = 0
 
+	async def intel(self):
+		print(self.game_info.map_size)
+		game_data = np.zeros((self.game_info.map_size[1], self.game_info.map_size[0], 3), np.uint8)
+		for nexus in self.units(NEXUS):
+			nex_pos = nexus.position
+			print(nex_pos)
+			cv2.circle(game_data, (int(nex_pos[0]), int(nex_pos[1])), 10, (0,255,0), -1)
+		flipped = cv2.flip(game_data,0)
+		resized = cv2.resize(flipped, dsize = None, fx=2,fy = 2)
+
+		cv2.imshow('Intel', resized)
+		cv2.waitKey(1)
+		draw_dict = {
+			NEXUS: [15, (0,255,0)],
+			PYLON: [3, (20,235,0)],
+			PROBE:[1,(55, 200, 0)],
+			ASSIMILATOR: [2, (55,200,0)],
+			GATEWAY: [3,(200,100,0)],
+			CYBERNETICSCORE: [3,(200,100,0)],
+			STARGATE: [5,(255,0,0)],
+			VOIDRAY:[3,(255,100,0)],
+		}
+		for unit_type in draw_dict:
+			for unit in self.units(unit_type).ready:
+				pos = unit.position
+				cv2.circle(game_data,(int(pos[0]), int(pos[1])),draw_dict[unit_type][0], draw_dict[unit_type][1], -1)
+	
 	def find_target(self,state):
 		if len(self.known_enemy_units) > 0:
 			return random.choice(self.known_enemy_units)
