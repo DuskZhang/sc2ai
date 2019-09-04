@@ -47,6 +47,31 @@ class SentdeBot(sc2.BotAI):
 		return go_to
 
 	async def scout(self):
+		line_max = 50
+		mineral_ratio = self.minerals/1500
+		if mineral_ratio > 1.0:
+			mineral_ratio = 1.0
+
+		vespene_ratio = self.vespene / 1500
+		if vespene_ratio > 1.0:
+			vespene_ratio = 1.0
+
+		population_ratio = self.supply_left / self.supply_cap
+		if population_ratio > 1.0:
+			population_ratio = 1.0
+
+		plausible_ supply = self.supply_cap/200.0
+
+		military_weight = len(self.units(VOIDRAY)) / (self.supply_cap - self.supply_left)
+		if military_weight > 1.0:
+			military_weight = 1.0
+
+
+		cv2.line(game_data , (0,19), (int(line_max * military_weight),19), (250, 250,200), 3)	
+		v2.line(game_data , (0,15), (int(line_max * plausible_supply),15), (220, 200,200), 3)
+		v2.line(game_data , (0,11), (int(line_max * population_ratio),11), (150, 150,150), 3)
+		v2.line(game_data , (0,7), (int(line_max * vespene_ratio),7), (210, 200,0), 3)
+		v2.line(game_data , (0,3), (int(line_max * mineral_ratio),3), (0, 255,25), 3)
 		if len(self.units(OBSERVER)) > 0:
 			scout = self.units(OBSERVER)[0]
 			if scout.is_idle:
@@ -82,7 +107,7 @@ class SentdeBot(sc2.BotAI):
 			STARGATE: [5,(255,0,0)],
 			VOIDRAY:[3,(255,100,0)],
 			ROBOTICSFACILITY:[5,(215,155,0)],
-			OBSERVER: [3,(255,255,255)],
+			#OBSERVER: [3,(255,255,255)],
 
 		}
 		for obs in self.units(OBSERVER).ready:
@@ -116,7 +141,7 @@ class SentdeBot(sc2.BotAI):
 				if enemy_unit.name.lower() in worker_names:
 					cv2.circle(game_data,(int(pos[0]), int(pos[1])), 1, (55,0,155), -1)
 				else:
-					cv2.circle(game_Data, (int(pos[0]), int(pos[1])), 1, (21,21,21), -1)
+					cv2.circle(game_data, (int(pos[0]), int(pos[1])), 1, (21,21,21), -1)
 
 	def find_target(self,state):
 		if len(self.known_enemy_units) > 0:
