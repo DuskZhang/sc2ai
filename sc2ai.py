@@ -1,11 +1,13 @@
 import sc2
-from sc2 import run_game, maps, Race, Difficulty, position
+from sc2 import run_game, maps, Race, Difficulty, position, RESULT
 from sc2.player import Bot, Computer
 from sc2.constants import GATEWAY, NEXUS, PROBE, PYLON, ASSIMILATOR, CYBERNETICSCORE, STALKER, STARGATE, VOIDRAY, ROBOTICSFACILITY, OBSERVER
 import random
 import cv2
 import numpy as np
-	
+import time
+
+HEADLESS = False
 
 class SentdeBot(sc2.BotAI):
 	async def on_step(self, iteration):
@@ -25,8 +27,8 @@ class SentdeBot(sc2.BotAI):
 	def __init__(self):
 		self.ITERATIONS_PER_MINUTE = 165
 		self.MAX_WORKERS = 50
-		self.iteration = 0
-
+		self.train_data = []
+		self.do_something_after = 0
 	def random_location_variance(self,enemy_start_location):
 		x = enemy_start_location[0]
 		y = enemy_start_location[1]
@@ -62,6 +64,8 @@ class SentdeBot(sc2.BotAI):
 					await self.do(rf.train(OBSERVER))
 	
 	async def intel(self):
+		game_data = np.zeros((self.game_info.map_size[1], self.game_info.map_size[0], 3), np.uint8)
+		
 		line_max = 50
 		mineral_ratio = self.minerals/1500
 		if mineral_ratio > 1.0:
@@ -89,16 +93,17 @@ class SentdeBot(sc2.BotAI):
 		cv2.line(game_data , (0,3), (int(line_max * mineral_ratio),3), (0, 255,25), 3)
 		
 		print(self.game_info.map_size)
-		game_data = np.zeros((self.game_info.map_size[1], self.game_info.map_size[0], 3), np.uint8)
 		for nexus in self.units(NEXUS):
 			nex_pos = nexus.position
 			print(nex_pos)
 			cv2.circle(game_data, (int(nex_pos[0]), int(nex_pos[1])), 10, (0,255,0), -1)
-		flipped = cv2.flip(game_data,0)
-		resized = cv2.resize(flipped, dsize = None, fx=2,fy = 2)
+		self.flipped = cv2.flip(game_data,0)
+		
+		if not HEADLESS:
+			resized = cv2.resize(self.flipped, dsize = None, fx=2,fy = 2)
+			cv2.imshow('Intel', resized)
+			cv2.waitKey(1)
 
-		cv2.imshow('Intel', resized)
-		cv2.waitKey(1)
 		draw_dict = {
 			NEXUS: [15, (0,255,0)],
 			PYLON: [3, (20,235,0)],
@@ -155,6 +160,30 @@ class SentdeBot(sc2.BotAI):
 
 
 	async def attack(self):
+		if len(self.units(VOIDRAY).idle) > 0:
+			choice = random.randrange(0,4)
+			target = False
+			if self.iteration > self.do_something_after:
+				if choice == 0:
+					wait = random.randrange(20,165)
+					self.do_something_after = self.iteration + wait
+				elif choice == 1:
+					if len(self.known_enemy_units) > 0:
+						target = self.known_enemy_units.closest_to(random.choice(self.units(NEXUS)))
+				elif choice == 2:
+					if len(self.known_enemy_structures) > 0:
+						target = random.choice(self.known_enemy_structures)
+
+				elif choice == 3:
+					target = self.enemy_start_locations[0]
+
+				if target:
+					for vr in self.units(VOIDRAY).idle:
+						await self.do(vr.attack(target))
+				y = np.zeros(4)
+				y[choice] = 1;
+				print(y)
+				self.train_data.append([y,self.flipped])
 
 		aggressive_units = {VOIDRAY:[8,3]}
 
